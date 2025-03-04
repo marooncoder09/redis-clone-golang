@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -43,12 +44,45 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Connection closed:", err.Error())
 			return
 		}
-
 		msg = strings.TrimSpace(msg)
-		fmt.Println("Received:", msg)
 
-		if strings.ToUpper(msg) == "PING" {
+		argCount, err := strconv.Atoi(msg[1:])
+		if err != nil || argCount < 1 {
+			conn.Write([]byte("-ERR invalid argument count\r\n"))
+			continue
+		}
+
+		args := make([]string, 0, argCount)
+
+		for i := 0; i < argCount; i++ {
+			_, err := reader.ReadString('\n')
+			if err != nil {
+				conn.Write([]byte("-ERR unexpected end of input\r\n"))
+				return
+			}
+
+			arg, err := reader.ReadString('\n')
+			if err != nil {
+				conn.Write([]byte("-ERR unexpected end of input\r\n"))
+				return
+			}
+			args = append(args, strings.TrimSpace(arg))
+		}
+
+		command := strings.ToUpper(args[0])
+
+		switch command {
+		case "PING":
 			conn.Write([]byte("+PONG\r\n"))
+		case "ECHO":
+			if len(args) > 1 {
+				response := args[1]
+				conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(response), response)))
+			} else {
+				conn.Write([]byte("$0\r\n\r\n"))
+			}
+		default:
+			conn.Write([]byte("-ERR unknown command\r\n"))
 		}
 	}
 }
