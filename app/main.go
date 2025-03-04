@@ -44,11 +44,11 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		msg = strings.TrimSpace(msg) // Remove extra spaces and newline
+		msg = strings.TrimSpace(msg)
 		fmt.Println("Received:", msg)
 
 		if strings.ToUpper(msg) == "PING" {
-			conn.Write([]byte("+PONG\r\n")) // RESP protocol format
+			conn.Write([]byte("+PONG\r\n"))
 		}
 	}
 }
