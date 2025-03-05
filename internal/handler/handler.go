@@ -40,6 +40,8 @@ func processCommand(conn net.Conn, args []string) {
 		commands.HandleSet(conn, args)
 	case "GET":
 		commands.HandleGet(conn, args)
+	case "CONFIG":
+		commands.HandleConfig(conn, args)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}

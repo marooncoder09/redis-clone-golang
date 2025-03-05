@@ -10,8 +10,14 @@ type StoreEntry struct {
 	ExpiresAt int64
 }
 
-var store = make(map[string]StoreEntry)
-var mu sync.RWMutex
+var (
+	store   = make(map[string]StoreEntry)
+	mu      sync.RWMutex
+	configs = map[string]string{
+		"dir":        "/tmp", // setting this to tmp for now.
+		"dbfilename": "dump.rdb",
+	}
+)
 
 func SetKey(key, value string, ttl int64) {
 	mu.Lock()
@@ -55,4 +61,17 @@ func GetKey(key string) (string, bool) {
 	}
 
 	return entry.Value, true
+}
+
+func SetConfig(key, value string) {
+	mu.Lock()
+	defer mu.Unlock()
+	configs[key] = value
+}
+
+func GetConfig(key string) (string, bool) {
+	mu.RLock()
+	defer mu.RUnlock()
+	value, exists := configs[key]
+	return value, exists
 }
