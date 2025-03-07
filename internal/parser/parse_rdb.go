@@ -59,54 +59,58 @@ func ParseRDB(filePath string) (map[string]string, error) {
 			if marker2 != 0xFB {
 				return nil, fmt.Errorf("expected hash table size marker 0xFB, got: %x", marker2)
 			}
-			if _, err := readSize(file); err != nil {
-				return nil, fmt.Errorf("error reading hash table size: %v", err)
+
+			numKeys, err := readSize(file) // this is the total no. of key-value pairs.
+			if err != nil {
+				return nil, fmt.Errorf("error reading total keys: %v", err)
 			}
-			if _, err := readSize(file); err != nil {
+			if _, err := readSize(file); err != nil { // this is the total no. of keys with expiry.
 				return nil, fmt.Errorf("error reading keys-with-expiry count: %v", err)
 			}
 
-			peek, err := peekByte(file)
-			if err != nil {
-				return nil, err
-			}
-			if peek == 0xFC || peek == 0xFD {
-				// Consume the expire marker.
-				expireMarker, _ := readByte(file)
-				if expireMarker == 0xFC {
-					// milliseconds: read 8 bytes.
-					expireBytes := make([]byte, 8)
-					if _, err := io.ReadFull(file, expireBytes); err != nil {
-						return nil, err
-					}
-				} else { // 0xFD: seconds; read 4 bytes.
-					expireBytes := make([]byte, 4)
-					if _, err := io.ReadFull(file, expireBytes); err != nil {
-						return nil, err
+			for i := 0; i < numKeys; i++ {
+				peek, err := peekByte(file)
+				if err != nil {
+					return nil, err
+				}
+				if peek == 0xFC || peek == 0xFD {
+					// Consume the expire marker.
+					expireMarker, _ := readByte(file)
+					if expireMarker == 0xFC {
+						// milliseconds expire: skip 8 bytes.
+						expireBytes := make([]byte, 8)
+						if _, err := io.ReadFull(file, expireBytes); err != nil {
+							return nil, err
+						}
+					} else { // 0xFD: seconds; skip 4 bytes.
+						expireBytes := make([]byte, 4)
+						if _, err := io.ReadFull(file, expireBytes); err != nil {
+							return nil, err
+						}
 					}
 				}
-			}
 
-			// read value type marker
-			valueType, err := readByte(file)
-			if err != nil {
-				return nil, err
-			}
-			if valueType != 0 {
-				return nil, fmt.Errorf("unsupported value type: %x", valueType)
-			}
+				// read value type marker
+				valueType, err := readByte(file)
+				if err != nil {
+					return nil, err
+				}
+				if valueType != 0 {
+					return nil, fmt.Errorf("unsupported value type: %x", valueType)
+				}
 
-			// read key and value as length prefixed strings.
-			key, err := readString(file)
-			if err != nil {
-				return nil, fmt.Errorf("error reading key: %v", err)
-			}
-			value, err := readString(file)
-			if err != nil {
-				return nil, fmt.Errorf("error reading value: %v", err)
-			}
+				// read key and value as length prefixed strings.
+				key, err := readString(file)
+				if err != nil {
+					return nil, fmt.Errorf("error reading key: %v", err)
+				}
+				value, err := readString(file)
+				if err != nil {
+					return nil, fmt.Errorf("error reading value: %v", err)
+				}
 
-			entries[key] = value
+				entries[key] = value
+			}
 		default:
 			return nil, fmt.Errorf("unknown marker: %x", marker)
 		}
