@@ -14,6 +14,8 @@ import (
 func main() {
 	dir := flag.String("dir", "/tmp/redis-data", "directory for RDB files")
 	dbfilename := flag.String("dbfilename", "dump.rdb", "RDB file name")
+	port := flag.String("port", "6379", "port to run the server on")
+
 	flag.Parse()
 
 	commands.SetConfig("dir", *dir)
@@ -29,8 +31,8 @@ func main() {
 		commands.SetKeyEntry(key, value)
 	}
 
-	fmt.Println("Starting server on port 6379...")
-	err = server.Start("0.0.0.0:6379")
+	fmt.Println("Starting server on port", *port, "...")
+	err = server.Start("0.0.0.0:" + *port)
 	if err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
