@@ -20,13 +20,13 @@ func main() {
 	commands.SetConfig("dbfilename", *dbfilename)
 
 	rdbPath := filepath.Join(*dir, *dbfilename)
-	keys, err := parser.ParseRDB(rdbPath)
+	entries, err := parser.ParseRDB(rdbPath)
 	if err != nil {
 		log.Fatal("Error loading RDB file:", err)
 	}
 
-	for _, key := range keys {
-		commands.SetKey(key, "", 0)
+	for key, value := range entries {
+		commands.SetKey(key, value, 0)
 	}
 
 	fmt.Println("Starting server on port 6379...")
