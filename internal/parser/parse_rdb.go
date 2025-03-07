@@ -1,18 +1,21 @@
 package parser
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/commands"
 )
 
 // ParseRDB will now open the RDB file and returns a map of key-value pairs
 // from the database section (ignoring metadata).
-func ParseRDB(filePath string) (map[string]string, error) {
+func ParseRDB(filePath string) (map[string]commands.StoreEntry, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return map[string]string{}, nil
+			return map[string]commands.StoreEntry{}, nil
 		}
 		return nil, fmt.Errorf("failed to open RDB file: %v", err)
 	}
@@ -26,7 +29,7 @@ func ParseRDB(filePath string) (map[string]string, error) {
 		return nil, fmt.Errorf("invalid RDB file format")
 	}
 
-	entries := make(map[string]string)
+	entries := make(map[string]commands.StoreEntry)
 
 	for {
 		marker, err := readByte(file)
@@ -69,6 +72,8 @@ func ParseRDB(filePath string) (map[string]string, error) {
 			}
 
 			for i := 0; i < numKeys; i++ {
+				var expiresAt int64 = 0
+
 				peek, err := peekByte(file)
 				if err != nil {
 					return nil, err
@@ -77,16 +82,20 @@ func ParseRDB(filePath string) (map[string]string, error) {
 					// Consume the expire marker.
 					expireMarker, _ := readByte(file)
 					if expireMarker == 0xFC {
-						// milliseconds expire: skip 8 bytes.
-						expireBytes := make([]byte, 8)
-						if _, err := io.ReadFull(file, expireBytes); err != nil {
+						buf := make([]byte, 8)
+						if _, err := io.ReadFull(file, buf); err != nil {
 							return nil, err
 						}
-					} else { // 0xFD: seconds; skip 4 bytes.
-						expireBytes := make([]byte, 4)
-						if _, err := io.ReadFull(file, expireBytes); err != nil {
+						ts := binary.LittleEndian.Uint64(buf)
+						expiresAt = int64(ts)
+					} else { // 0xFD indicates seconds
+						buf := make([]byte, 4)
+						if _, err := io.ReadFull(file, buf); err != nil {
 							return nil, err
 						}
+						ts := binary.LittleEndian.Uint32(buf)
+						// convert seconds to milliseconds.
+						expiresAt = int64(ts) * 1000
 					}
 				}
 
@@ -109,7 +118,7 @@ func ParseRDB(filePath string) (map[string]string, error) {
 					return nil, fmt.Errorf("error reading value: %v", err)
 				}
 
-				entries[key] = value
+				entries[key] = commands.StoreEntry{Value: value, ExpiresAt: expiresAt}
 			}
 		default:
 			return nil, fmt.Errorf("unknown marker: %x", marker)

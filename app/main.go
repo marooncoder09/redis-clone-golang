@@ -26,7 +26,7 @@ func main() {
 	}
 
 	for key, value := range entries {
-		commands.SetKey(key, value, 0)
+		commands.SetKeyEntry(key, value)
 	}
 
 	fmt.Println("Starting server on port 6379...")

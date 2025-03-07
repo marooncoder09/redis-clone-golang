@@ -76,3 +76,9 @@ func GetConfig(key string) (string, bool) {
 	value, exists := configs[key]
 	return value, exists
 }
+
+func SetKeyEntry(key string, entry StoreEntry) {
+	mu.Lock()
+	defer mu.Unlock()
+	store[key] = entry
+}
