@@ -49,7 +49,7 @@ func performHandshake(conn net.Conn, replicaPort string) {
 	replconfCapa := "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n" //this is the only capa that the master will accept
 	/*
 		what is capa?
-		https://redis.io/docs/latest/replication/#replication-capabilities
+		https://redis.io/docs/latest/operate/oss_and_stack/management/replication/
 	*/
 	fmt.Println("Sending REPLCONF capa psync2")
 	_, err = conn.Write([]byte(replconfCapa))

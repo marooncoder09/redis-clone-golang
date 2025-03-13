@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"net"
 	"sync"
 	"time"
 )
@@ -17,6 +18,7 @@ var (
 		"dir":        "/tmp", // setting this to tmp for now.
 		"dbfilename": "dump.rdb",
 	}
+	replicas []net.Conn
 )
 
 func SetKey(key, value string, ttl int64) {

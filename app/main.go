@@ -31,7 +31,7 @@ func main() {
 		commands.SetConfig("role", "master")
 	}
 
-	commands.SetConfig("master_replid", utils.GetMasterReplID()) // hardcoded for now as per the challenge
+	commands.SetConfig("master_replid", utils.GetMasterReplID())
 	commands.SetConfig("master_repl_offset", "0")
 
 	rdbPath := filepath.Join(*dir, *dbfilename)

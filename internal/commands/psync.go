@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/codecrafters-io/redis-starter-go/internal/replication"
 	"github.com/codecrafters-io/redis-starter-go/internal/utils"
 )
 
@@ -33,4 +34,6 @@ func HandlePsync(conn net.Conn, args []string) {
 	rdbHeader := fmt.Sprintf("$%d\r\n", len(rdbBytes))
 	conn.Write([]byte(rdbHeader))
 	conn.Write(rdbBytes)
+
+	replication.AddReplica(conn)
 }

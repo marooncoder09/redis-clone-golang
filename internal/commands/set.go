@@ -5,6 +5,8 @@ import (
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/replication"
 )
 
 func HandleSet(conn net.Conn, args []string) {
@@ -30,4 +32,6 @@ func HandleSet(conn net.Conn, args []string) {
 
 	conn.Write([]byte("+OK\r\n"))
 	fmt.Println("Processed SET:", key, "->", value, "PX:", ttl)
+
+	replication.PropagateCommand("SET", args[1:])
 }
