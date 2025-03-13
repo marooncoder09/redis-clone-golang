@@ -28,6 +28,9 @@ func main() {
 		commands.SetConfig("role", "master")
 	}
 
+	commands.SetConfig("master_replid", "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb") // hardcoded for now as per the challenge
+	commands.SetConfig("master_repl_offset", "0")
+
 	rdbPath := filepath.Join(*dir, *dbfilename)
 	entries, err := parser.ParseRDB(rdbPath)
 	if err != nil {
