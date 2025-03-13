@@ -10,6 +10,7 @@ import (
 	"github.com/codecrafters-io/redis-starter-go/internal/parser"
 	"github.com/codecrafters-io/redis-starter-go/internal/replication"
 	"github.com/codecrafters-io/redis-starter-go/internal/server"
+	"github.com/codecrafters-io/redis-starter-go/internal/utils"
 )
 
 func main() {
@@ -30,7 +31,7 @@ func main() {
 		commands.SetConfig("role", "master")
 	}
 
-	commands.SetConfig("master_replid", "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb") // hardcoded for now as per the challenge
+	commands.SetConfig("master_replid", utils.GetMasterReplID()) // hardcoded for now as per the challenge
 	commands.SetConfig("master_repl_offset", "0")
 
 	rdbPath := filepath.Join(*dir, *dbfilename)

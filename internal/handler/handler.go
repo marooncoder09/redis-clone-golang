@@ -46,6 +46,10 @@ func processCommand(conn net.Conn, args []string) {
 		commands.HandleKeys(conn, args)
 	case "INFO":
 		commands.HandleInfo(conn, args)
+	case "REPLCONF":
+		commands.HandleReplConf(conn, args)
+	case "PSYNC":
+		commands.HandlePsync(conn, args)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}

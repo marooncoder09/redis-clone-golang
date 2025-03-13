@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/utils"
 )
 
 func HandleInfo(conn net.Conn, args []string) {
@@ -16,7 +18,7 @@ func HandleInfo(conn net.Conn, args []string) {
 
 	masterReplID, exists := GetConfig("master_replid")
 	if !exists {
-		masterReplID = "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
+		masterReplID = utils.GetMasterReplID()
 	}
 
 	masterReplOffset, exists := GetConfig("master_repl_offset")
