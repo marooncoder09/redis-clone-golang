@@ -12,7 +12,12 @@ func HandleInfo(conn net.Conn, args []string) {
 		return
 	}
 
-	infoResponse := "role:master"
+	role, exists := GetConfig("role")
+	if !exists {
+		role = "master"
+	}
+
+	infoResponse := fmt.Sprintf("role:%s", role)
 	response := fmt.Sprintf("$%d\r\n%s\r\n", len(infoResponse), infoResponse)
 
 	conn.Write([]byte(response))
