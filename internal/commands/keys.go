@@ -9,10 +9,9 @@ func HandleKeys(conn net.Conn, args []string) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	var keysList []string
+	keysList := make([]string, 0, len(store)) // Preallocating the slice for better performance
 
 	for key := range store {
-		fmt.Println("KEYs: ", key)
 		keysList = append(keysList, key)
 	}
 

@@ -50,11 +50,12 @@ func ParseRDB(filePath string) (map[string]commands.StoreEntry, error) {
 			if _, err := readString(file); err != nil {
 				return nil, fmt.Errorf("error reading metadata value: %v", err)
 			}
+
 		case 0xFE:
 			if _, err := readSize(file); err != nil {
 				return nil, fmt.Errorf("error reading database index: %v", err)
 			}
-			// Expect hash table size marker: should be 0xFB.
+
 			marker2, err := readByte(file)
 			if err != nil {
 				return nil, err

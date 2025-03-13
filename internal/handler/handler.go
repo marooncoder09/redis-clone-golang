@@ -43,8 +43,9 @@ func processCommand(conn net.Conn, args []string) {
 	case "CONFIG":
 		commands.HandleConfig(conn, args)
 	case "KEYS":
-		fmt.Println("KEYS command received")
 		commands.HandleKeys(conn, args)
+	case "INFO":
+		commands.HandleInfo(conn, args)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}
