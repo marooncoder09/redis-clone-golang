@@ -27,7 +27,6 @@ func HandleReplConf(conn net.Conn, args []string) {
 		fmt.Println("Replica reported listening port:", args[2])
 
 	case "capa":
-
 		if len(args) != 3 {
 			conn.Write([]byte("-ERR missing capa argument\r\n"))
 			return

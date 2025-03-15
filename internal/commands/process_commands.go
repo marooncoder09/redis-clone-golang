@@ -29,6 +29,8 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 		HandleReplConf(conn, args)
 	case "PSYNC":
 		HandlePsync(conn, args)
+	case "WAIT":
+		HandleWait(conn, args, isReplica)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}
