@@ -45,3 +45,9 @@ func encodeCommandRESP(command string, args []string) string {
 	}
 	return resp
 }
+
+func GetReplicaCount() int {
+	mu.RLock()
+	defer mu.RUnlock()
+	return len(replicas)
+}
