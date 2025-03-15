@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/internal/commands"
 	parser "github.com/codecrafters-io/redis-starter-go/internal/parser"
@@ -23,34 +22,6 @@ func HandleConnection(conn net.Conn) {
 		if len(args) == 0 {
 			continue
 		}
-		processCommand(conn, args)
-	}
-}
-
-func processCommand(conn net.Conn, args []string) {
-	command := strings.ToUpper(args[0])
-	fmt.Println("Processing command:", command)
-
-	switch command {
-	case "PING":
-		commands.HandlePing(conn)
-	case "ECHO":
-		commands.HandleEcho(conn, args)
-	case "SET":
-		commands.HandleSet(conn, args)
-	case "GET":
-		commands.HandleGet(conn, args)
-	case "CONFIG":
-		commands.HandleConfig(conn, args)
-	case "KEYS":
-		commands.HandleKeys(conn, args)
-	case "INFO":
-		commands.HandleInfo(conn, args)
-	case "REPLCONF":
-		commands.HandleReplConf(conn, args)
-	case "PSYNC":
-		commands.HandlePsync(conn, args)
-	default:
-		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
+		commands.ProcessCommand(conn, args, false)
 	}
 }

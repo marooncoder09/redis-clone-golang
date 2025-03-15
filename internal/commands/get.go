@@ -20,6 +20,6 @@ func HandleGet(conn net.Conn, args []string) {
 		return
 	}
 
-	conn.Write([]byte(fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)))
-	fmt.Println("Processed GET:", key, "->", value)
+	resp := fmt.Sprintf("$%d\r\n%s\r\n", len(value), value)
+	conn.Write([]byte(resp))
 }

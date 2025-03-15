@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"path/filepath"
 
 	"github.com/codecrafters-io/redis-starter-go/internal/commands"
@@ -24,9 +25,14 @@ func main() {
 	commands.SetConfig("dir", *dir)
 	commands.SetConfig("dbfilename", *dbfilename)
 
-	if *replicaof != "" { // here it is master by default, but if the flag replicaof is set then it is a slave
+	if *replicaof != "" {
 		commands.SetConfig("role", "slave")
-		go replication.StartReplicaProcess(*replicaof, *port)
+
+		commandHandler := func(conn net.Conn, args []string, isReplica bool) {
+			commands.ProcessCommand(conn, args, isReplica)
+		}
+
+		go replication.StartReplicaProcess(*replicaof, *port, commandHandler)
 	} else {
 		commands.SetConfig("role", "master")
 	}

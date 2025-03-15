@@ -3,19 +3,18 @@ package replication
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"strconv"
 	"strings"
-	"time"
 )
 
-func performHandshake(conn net.Conn, replicaPort string) {
-	reader := bufio.NewReader(conn)
+func performHandshake(conn net.Conn, reader *bufio.Reader, replicaPort string) {
 
 	pingMessage := "*1\r\n$4\r\nPING\r\n"
 	fmt.Println("Sending PING to master...")
-	_, err := conn.Write([]byte(pingMessage))
-	if err != nil {
+	if _, err := conn.Write([]byte(pingMessage)); err != nil {
 		log.Println("Failed to send PING to master:", err)
 		conn.Close()
 		return
@@ -29,10 +28,13 @@ func performHandshake(conn net.Conn, replicaPort string) {
 	}
 	fmt.Println("Received from master:", strings.TrimSpace(response))
 
-	replconfListening := fmt.Sprintf("*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$%d\r\n%s\r\n", len(replicaPort), replicaPort)
+	replconfListening := fmt.Sprintf(
+		"*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$%d\r\n%s\r\n",
+		len(replicaPort),
+		replicaPort,
+	)
 	fmt.Println("Sending REPLCONF listening-port", replicaPort)
-	_, err = conn.Write([]byte(replconfListening))
-	if err != nil {
+	if _, err := conn.Write([]byte(replconfListening)); err != nil {
 		log.Println("Failed to send REPLCONF listening-port:", err)
 		conn.Close()
 		return
@@ -40,28 +42,23 @@ func performHandshake(conn net.Conn, replicaPort string) {
 
 	response, err = reader.ReadString('\n')
 	if err != nil {
-		log.Println("Error reading response to REPLCONF listening-port:", err)
+		log.Println("Error reading REPLCONF listening-port response:", err)
 		conn.Close()
 		return
 	}
 	fmt.Println("Received from master:", strings.TrimSpace(response))
 
-	replconfCapa := "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n" //this is the only capa that the master will accept
-	/*
-		what is capa?
-		https://redis.io/docs/latest/operate/oss_and_stack/management/replication/
-	*/
-	fmt.Println("Sending REPLCONF capa psync2")
-	_, err = conn.Write([]byte(replconfCapa))
-	if err != nil {
-		log.Println("Failed to send REPLCONF capa psync2:", err)
+	replconfCapa := "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$3\r\neof\r\n"
+	fmt.Println("Sending REPLCONF capa eof")
+	if _, err := conn.Write([]byte(replconfCapa)); err != nil {
+		log.Println("Failed to send REPLCONF capa command:", err)
 		conn.Close()
 		return
 	}
 
 	response, err = reader.ReadString('\n')
 	if err != nil {
-		log.Println("Error reading response to REPLCONF capa:", err)
+		log.Println("Error reading REPLCONF capa response:", err)
 		conn.Close()
 		return
 	}
@@ -69,8 +66,7 @@ func performHandshake(conn net.Conn, replicaPort string) {
 
 	psyncMessage := "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n"
 	fmt.Println("Sending PSYNC ? -1")
-	_, err = conn.Write([]byte(psyncMessage))
-	if err != nil {
+	if _, err := conn.Write([]byte(psyncMessage)); err != nil {
 		log.Println("Failed to send PSYNC:", err)
 		conn.Close()
 		return
@@ -84,7 +80,33 @@ func performHandshake(conn net.Conn, replicaPort string) {
 	}
 	fmt.Println("Received from master:", strings.TrimSpace(response))
 
-	for {
-		time.Sleep(time.Second)
+	bulkHeader, err := reader.ReadString('\n')
+	if err != nil {
+		log.Println("Error reading RDB bulk header:", err)
+		conn.Close()
+		return
 	}
+	bulkHeader = strings.TrimSpace(bulkHeader)
+	if !strings.HasPrefix(bulkHeader, "$") {
+		log.Println("Invalid RDB bulk header:", bulkHeader)
+		conn.Close()
+		return
+	}
+
+	lengthStr := bulkHeader[1:]
+	rdbLength, err := strconv.Atoi(lengthStr)
+	if err != nil {
+		log.Println("Error parsing RDB length:", err)
+		conn.Close()
+		return
+	}
+
+	rdbData := make([]byte, rdbLength)
+	if _, err := io.ReadFull(reader, rdbData); err != nil {
+		log.Println("Error reading RDB data:", err)
+		conn.Close()
+		return
+	}
+
+	fmt.Println("Handshake with master complete. Ready to receive commands.")
 }

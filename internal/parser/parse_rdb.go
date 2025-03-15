@@ -6,16 +6,16 @@ import (
 	"io"
 	"os"
 
-	"github.com/codecrafters-io/redis-starter-go/internal/commands"
+	"github.com/codecrafters-io/redis-starter-go/internal/models/core"
 )
 
 // ParseRDB will now open the RDB file and returns a map of key-value pairs
 // from the database section (ignoring metadata).
-func ParseRDB(filePath string) (map[string]commands.StoreEntry, error) {
+func ParseRDB(filePath string) (map[string]core.StoreEntry, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return map[string]commands.StoreEntry{}, nil
+			return map[string]core.StoreEntry{}, nil
 		}
 		return nil, fmt.Errorf("failed to open RDB file: %v", err)
 	}
@@ -29,7 +29,7 @@ func ParseRDB(filePath string) (map[string]commands.StoreEntry, error) {
 		return nil, fmt.Errorf("invalid RDB file format")
 	}
 
-	entries := make(map[string]commands.StoreEntry)
+	entries := make(map[string]core.StoreEntry)
 
 	for {
 		marker, err := readByte(file)
@@ -119,7 +119,7 @@ func ParseRDB(filePath string) (map[string]commands.StoreEntry, error) {
 					return nil, fmt.Errorf("error reading value: %v", err)
 				}
 
-				entries[key] = commands.StoreEntry{Value: value, ExpiresAt: expiresAt}
+				entries[key] = core.StoreEntry{Value: value, ExpiresAt: expiresAt}
 			}
 		default:
 			return nil, fmt.Errorf("unknown marker: %x", marker)

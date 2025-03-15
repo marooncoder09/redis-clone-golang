@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bufio"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -17,23 +18,44 @@ func HandlePsync(conn net.Conn, args []string) {
 		return
 	}
 
-	masterReplID, exists := GetConfig("master_replid")
-	if !exists {
-		masterReplID = utils.GetMasterReplID()
-	}
+	bw := bufio.NewWriter(conn)
 
+	masterReplID := utils.GetMasterReplID()
 	fullResyncResponse := fmt.Sprintf("+FULLRESYNC %s 0\r\n", masterReplID)
-	conn.Write([]byte(fullResyncResponse))
+	if _, err := bw.WriteString(fullResyncResponse); err != nil {
+		conn.Close()
+		return
+	}
+	if err := bw.Flush(); err != nil {
+		conn.Close()
+		return
+	}
 
 	rdbBytes, err := hex.DecodeString(emptyRDBHex)
 	if err != nil {
 		conn.Write([]byte("-ERR failed to load empty RDB file\r\n"))
+		conn.Close()
 		return
 	}
 
 	rdbHeader := fmt.Sprintf("$%d\r\n", len(rdbBytes))
-	conn.Write([]byte(rdbHeader))
-	conn.Write(rdbBytes)
+	if _, err := bw.WriteString(rdbHeader); err != nil {
+		conn.Close()
+		return
+	}
+
+	if _, err := bw.Write(rdbBytes); err != nil {
+		conn.Close()
+		return
+	}
+
+	if err := bw.Flush(); err != nil {
+		conn.Close()
+		return
+	}
 
 	replication.AddReplica(conn)
+	fmt.Println("[Master] Registered new replica:", conn.RemoteAddr())
+
+	go replication.HandleReplicatedCommands(bufio.NewReader(conn), ProcessCommand)
 }

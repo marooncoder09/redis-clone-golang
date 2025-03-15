@@ -22,13 +22,19 @@ func PropagateCommand(command string, args []string) {
 	defer mu.RUnlock()
 
 	if len(replicas) == 0 {
+		fmt.Println("[Master] No replicas to propagate to.")
 		return
 	}
 
 	respCommand := encodeCommandRESP(command, args)
 
+	fmt.Println("[Master] Propagating command:", command, args)
+
 	for _, replica := range replicas {
-		_, _ = replica.Write([]byte(respCommand))
+		_, err := replica.Write([]byte(respCommand))
+		if err != nil {
+			fmt.Println("[Master] Failed to propagate to replica:", err)
+		}
 	}
 }
 

@@ -4,15 +4,12 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/models/core"
 )
 
-type StoreEntry struct {
-	Value     string
-	ExpiresAt int64
-}
-
 var (
-	store   = make(map[string]StoreEntry)
+	store   = make(map[string]core.StoreEntry)
 	mu      sync.RWMutex
 	configs = map[string]string{
 		"dir":        "/tmp", // setting this to tmp for now.
@@ -25,7 +22,7 @@ func SetKey(key, value string, ttl int64) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	entry := StoreEntry{Value: value}
+	entry := core.StoreEntry{Value: value}
 	if ttl > 0 {
 		entry.ExpiresAt = time.Now().UnixMilli() + ttl // Expiry in milliseconds, should i make it in seconds?
 	}
@@ -79,8 +76,14 @@ func GetConfig(key string) (string, bool) {
 	return value, exists
 }
 
-func SetKeyEntry(key string, entry StoreEntry) {
+func SetKeyEntry(key string, entry core.StoreEntry) {
 	mu.Lock()
 	defer mu.Unlock()
 	store[key] = entry
+}
+
+func ClearStore() {
+	mu.Lock()
+	defer mu.Unlock()
+	store = make(map[string]core.StoreEntry)
 }
