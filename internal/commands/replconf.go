@@ -31,6 +31,16 @@ func HandleReplConf(conn net.Conn, args []string) {
 		}
 		fmt.Println("Replica supports capability:", args[2])
 
+	case "getack":
+		offset := "0"
+		ackResponse := fmt.Sprintf(
+			"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%s\r\n",
+			len(offset),
+			offset,
+		)
+		conn.Write([]byte(ackResponse))
+		return
+
 	default:
 		conn.Write([]byte("-ERR unknown REPLCONF parameter\r\n"))
 		return

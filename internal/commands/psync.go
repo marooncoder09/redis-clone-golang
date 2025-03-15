@@ -57,5 +57,5 @@ func HandlePsync(conn net.Conn, args []string) {
 	replication.AddReplica(conn)
 	fmt.Println("[Master] Registered new replica:", conn.RemoteAddr())
 
-	go replication.HandleReplicatedCommands(bufio.NewReader(conn), ProcessCommand)
+	go replication.HandleReplicatedCommands(conn, bufio.NewReader(conn), ProcessCommand)
 }

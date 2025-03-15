@@ -34,10 +34,10 @@ func StartReplicaProcess(masterAddress, replicaPort string, handleCommand Comman
 	fmt.Println("Connected to master. Starting handshake...")
 	performHandshake(conn, reader, replicaPort)
 
-	go HandleReplicatedCommands(reader, handleCommand)
+	go HandleReplicatedCommands(conn, reader, handleCommand)
 }
 
-func HandleReplicatedCommands(reader *bufio.Reader, handleCommand CommandHandlerFunc) {
+func HandleReplicatedCommands(conn net.Conn, reader *bufio.Reader, handleCommand CommandHandlerFunc) {
 	for {
 		args, err := parser.ParseRequest(reader)
 		if err != nil {
@@ -53,6 +53,6 @@ func HandleReplicatedCommands(reader *bufio.Reader, handleCommand CommandHandler
 		}
 
 		fmt.Println("[Replica] Received command from master:", args)
-		handleCommand(nil, args, true)
+		handleCommand(conn, args, true)
 	}
 }
