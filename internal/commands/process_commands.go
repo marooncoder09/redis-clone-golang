@@ -12,7 +12,7 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 
 	switch command {
 	case "PING":
-		HandlePing(conn)
+		HandlePing(conn, args, isReplica)
 	case "ECHO":
 		HandleEcho(conn, args)
 	case "SET":

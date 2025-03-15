@@ -1,11 +1,15 @@
 package commands
 
 import (
-	"fmt"
 	"net"
 )
 
-func HandlePing(conn net.Conn) {
-	conn.Write([]byte("+PONG\r\n"))
-	fmt.Println("Processed PING command")
+func HandlePing(conn net.Conn, args []string, isReplica bool) {
+	if isReplica {
+		return
+	}
+
+	if conn != nil {
+		conn.Write([]byte("+PONG\r\n"))
+	}
 }

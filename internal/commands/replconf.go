@@ -3,7 +3,10 @@ package commands
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
+
+	"github.com/codecrafters-io/redis-starter-go/internal/replication"
 )
 
 func HandleReplConf(conn net.Conn, args []string) {
@@ -32,11 +35,13 @@ func HandleReplConf(conn net.Conn, args []string) {
 		fmt.Println("Replica supports capability:", args[2])
 
 	case "getack":
-		offset := "0"
+		offsetValue := replication.GetOffset()
+
+		offsetStr := strconv.FormatInt(offsetValue, 10)
 		ackResponse := fmt.Sprintf(
 			"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%s\r\n",
-			len(offset),
-			offset,
+			len(offsetStr),
+			offsetStr,
 		)
 		conn.Write([]byte(ackResponse))
 		return

@@ -37,9 +37,17 @@ func StartReplicaProcess(masterAddress, replicaPort string, handleCommand Comman
 	go HandleReplicatedCommands(conn, reader, handleCommand)
 }
 
-func HandleReplicatedCommands(conn net.Conn, reader *bufio.Reader, handleCommand CommandHandlerFunc) {
+func HandleReplicatedCommands(
+	conn net.Conn,
+	reader *bufio.Reader,
+	handleCommand CommandHandlerFunc,
+) {
+
+	SetOffset(0)
+
 	for {
-		args, err := parser.ParseRequest(reader)
+
+		args, nBytes, err := parser.ParseRequestWithByteCount(reader)
 		if err != nil {
 			if err == io.EOF || strings.Contains(err.Error(), "closed network connection") {
 				fmt.Println("[Replica] Master disconnected")
@@ -48,11 +56,19 @@ func HandleReplicatedCommands(conn net.Conn, reader *bufio.Reader, handleCommand
 			fmt.Println("[Replica] Error parsing replicated command:", err)
 			return
 		}
+
 		if len(args) == 0 {
 			continue
 		}
 
 		fmt.Println("[Replica] Received command from master:", args)
-		handleCommand(conn, args, true)
+
+		if len(args) >= 2 && strings.ToUpper(args[0]) == "REPLCONF" && strings.ToUpper(args[1]) == "GETACK" {
+			handleCommand(conn, args, true)
+			AddToOffset(nBytes)
+		} else {
+			AddToOffset(nBytes)
+			handleCommand(conn, args, true)
+		}
 	}
 }
