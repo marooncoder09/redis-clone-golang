@@ -1,6 +1,9 @@
 package replication
 
-import "sync"
+import (
+	"fmt"
+	"sync"
+)
 
 var (
 	globalOffset int64
@@ -16,6 +19,8 @@ func GetOffset() int64 {
 func AddToOffset(n int64) {
 	offsetMu.Lock()
 	defer offsetMu.Unlock()
+	fmt.Printf("[OFFSET] Adding %d to offset (was %d)\n", n, globalOffset)
+
 	globalOffset += n
 }
 

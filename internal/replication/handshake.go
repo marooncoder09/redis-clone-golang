@@ -108,5 +108,6 @@ func performHandshake(conn net.Conn, reader *bufio.Reader, replicaPort string) {
 		return
 	}
 
+	SetOffset(0)
 	fmt.Println("Handshake with master complete. Ready to receive commands.")
 }

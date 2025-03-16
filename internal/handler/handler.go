@@ -14,7 +14,7 @@ func HandleConnection(conn net.Conn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		args, err := parser.ParseRequest(reader)
+		args, _, err := parser.ParseRequestWithByteCount(reader)
 		if err != nil {
 			fmt.Println("Error parsing request:", err)
 			return
@@ -23,5 +23,6 @@ func HandleConnection(conn net.Conn) {
 			continue
 		}
 		commands.ProcessCommand(conn, args, false)
+
 	}
 }

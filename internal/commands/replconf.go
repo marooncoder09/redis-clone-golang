@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"strconv"
 	"strings"
@@ -26,6 +27,10 @@ func HandleReplConf(conn net.Conn, args []string) {
 		}
 		fmt.Println("Replica reported listening port:", args[2])
 
+		replication.AddReplica(conn)
+		conn.Write([]byte("+OK\r\n"))
+		return
+
 	case "capa":
 		if len(args) != 3 {
 			conn.Write([]byte("-ERR missing capa argument\r\n"))
@@ -35,14 +40,25 @@ func HandleReplConf(conn net.Conn, args []string) {
 
 	case "getack":
 		offsetValue := replication.GetOffset()
-
 		offsetStr := strconv.FormatInt(offsetValue, 10)
 		ackResponse := fmt.Sprintf(
 			"*3\r\n$8\r\nREPLCONF\r\n$3\r\nACK\r\n$%d\r\n%s\r\n",
 			len(offsetStr),
 			offsetStr,
 		)
-		conn.Write([]byte(ackResponse))
+
+		if _, err := conn.Write([]byte(ackResponse)); err != nil {
+			log.Println("Failed to send ACK:", err)
+		}
+		return
+
+	case "ack":
+		if len(args) < 3 {
+			conn.Write([]byte("-ERR missing offset\r\n"))
+			return
+		}
+		ackOffset, _ := strconv.ParseInt(args[2], 10, 64)
+		replication.SetReplicaOffset(conn, ackOffset)
 		return
 
 	default:

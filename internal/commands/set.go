@@ -56,5 +56,6 @@ func HandleSet(conn net.Conn, args []string, isReplica bool) {
 		fmt.Println("[Master] Processed SET:", key, "->", value, "TTL:", ttl)
 
 		replication.PropagateCommand("SET", args[1:])
+		time.Sleep(100 * time.Millisecond)
 	}
 }
