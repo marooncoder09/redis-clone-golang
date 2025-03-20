@@ -119,7 +119,11 @@ func ParseRDB(filePath string) (map[string]core.StoreEntry, error) {
 					return nil, fmt.Errorf("error reading value: %v", err)
 				}
 
-				entries[key] = core.StoreEntry{Value: value, ExpiresAt: expiresAt}
+				entries[key] = core.StoreEntry{
+					Data:      value,
+					ExpiresAt: expiresAt,
+					Type:      "string",
+				}
 			}
 		default:
 			return nil, fmt.Errorf("unknown marker: %x", marker)

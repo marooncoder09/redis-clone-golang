@@ -22,27 +22,27 @@ func SetKey(key, value string, ttl int64) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	entry := core.StoreEntry{Value: value}
+	entry := core.StoreEntry{Data: value, Type: "string"}
 	if ttl > 0 {
 		entry.ExpiresAt = time.Now().UnixMilli() + ttl // Expiry in milliseconds, should i make it in seconds?
 	}
 	store[key] = entry
 }
 
-func GetKey(key string) (string, bool) {
+func GetKey(key string) (core.StoreEntry, bool) {
 	mu.RLock()
 	entry, exists := store[key]
 	mu.RUnlock()
 
 	if !exists {
-		return "", false
+		return core.StoreEntry{}, false
 	}
 
 	if entry.ExpiresAt > 0 && time.Now().UnixMilli() > entry.ExpiresAt {
 		mu.Lock()
 		delete(store, key)
 		mu.Unlock()
-		return "", false
+		return core.StoreEntry{}, false
 
 		// TODO: Handle the expiration part in a better way.
 		/*
@@ -60,7 +60,7 @@ func GetKey(key string) (string, bool) {
 		*/
 	}
 
-	return entry.Value, true
+	return entry, true
 }
 
 func SetConfig(key, value string) {
@@ -86,4 +86,23 @@ func ClearStore() {
 	mu.Lock()
 	defer mu.Unlock()
 	store = make(map[string]core.StoreEntry)
+}
+
+func GetEntry(key string) (core.StoreEntry, bool) {
+	mu.RLock()
+	entry, exists := store[key]
+	mu.RUnlock()
+
+	if !exists {
+		return core.StoreEntry{}, false
+	}
+
+	if entry.ExpiresAt > 0 && time.Now().UnixMilli() > entry.ExpiresAt {
+		mu.Lock()
+		delete(store, key)
+		mu.Unlock()
+		return core.StoreEntry{}, false
+	}
+
+	return entry, true
 }

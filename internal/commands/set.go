@@ -38,7 +38,7 @@ func HandleSet(conn net.Conn, args []string, isReplica bool) {
 		ttl = parsedTTL
 	}
 
-	entry := core.StoreEntry{Value: value}
+	entry := core.StoreEntry{Data: value, Type: "string"}
 	if ttl > 0 {
 		entry.ExpiresAt = time.Now().UnixMilli() + ttl
 	}

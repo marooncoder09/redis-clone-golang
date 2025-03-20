@@ -13,11 +13,18 @@ func HandleType(conn net.Conn, args []string) {
 	}
 
 	key := args[1]
-	_, exists := GetKey(key)
+	entry, exists := GetEntry(key)
 
 	response := "+none\r\n"
 	if exists {
-		response = "+string\r\n"
+		switch entry.Type {
+		case "stream":
+			response = "+stream\r\n"
+		case "string":
+			response = "+string\r\n"
+		default:
+			response = "+none\r\n"
+		}
 	}
 
 	conn.Write([]byte(response))

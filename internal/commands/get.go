@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"net"
+	"time"
 )
 
 func HandleGet(conn net.Conn, args []string) {
@@ -12,11 +13,30 @@ func HandleGet(conn net.Conn, args []string) {
 	}
 
 	key := args[1]
-	value, exists := GetKey(key)
+	entry, exists := GetEntry(key)
 
 	if !exists {
-		conn.Write([]byte("$-1\r\n")) // Null bulk string if key expired
+		conn.Write([]byte("$-1\r\n")) // key DNE
 		fmt.Println("Processed GET:", key, "-> Expired or not found")
+		return
+	}
+
+	if entry.ExpiresAt > 0 && time.Now().UnixMilli() > entry.ExpiresAt {
+		conn.Write([]byte("$-1\r\n")) // Key is expired
+		fmt.Println("Processed GET:", key, "-> Expired")
+		return
+	}
+
+	if entry.Type != "string" {
+		conn.Write([]byte("$-1\r\n")) // Key is not of type string
+		fmt.Println("Processed GET:", key, "-> Not a string")
+		return
+	}
+
+	value, ok := entry.Data.(string)
+	if !ok {
+		conn.Write([]byte("$-1\r\n")) // invalid data type
+		fmt.Println("Processed GET:", key, "-> Invalid data type")
 		return
 	}
 
