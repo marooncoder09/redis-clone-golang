@@ -16,7 +16,20 @@ var (
 		"dbfilename": "dump.rdb",
 	}
 	replicas []net.Conn
+
+	waitingClientsMu sync.Mutex
+	waitingClients   = make(map[string][]*waitingClient) // key: stream key
 )
+
+type waitingClient struct {
+	streams    map[string]string // stream key -> start ID
+	responseCh chan xreadResponse
+	deadline   time.Time
+}
+
+type xreadResponse struct {
+	entries map[string][]core.StreamEntry
+}
 
 func SetKey(key, value string, ttl int64) {
 	mu.Lock()

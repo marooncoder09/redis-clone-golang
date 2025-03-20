@@ -90,6 +90,63 @@ func HandleXadd(conn net.Conn, args []string) {
 		Data: stream,
 	}
 
+	// Notify waiting clients
+	waitingClientsMu.Lock()
+	clients := waitingClients[streamKey]
+	newClients := make([]*waitingClient, 0, len(clients))
+
+	for _, client := range clients {
+		startID, ok := client.streams[streamKey]
+		if !ok {
+			continue
+		}
+
+		compare, err := compareIDs(entryID, startID)
+		if err != nil || compare <= 0 {
+			newClients = append(newClients, client)
+			continue
+		}
+
+		// Collect entries for all streams the client is waiting on
+		responseEntries := make(map[string][]core.StreamEntry)
+		for sKey, sStartID := range client.streams {
+			entry, exists := store[sKey]
+			if !exists || entry.Type != "stream" {
+				continue
+			}
+
+			stream, ok := entry.Data.(core.Stream)
+			if !ok {
+				continue
+			}
+
+			var entries []core.StreamEntry
+			for _, e := range stream.Entries {
+				if compare, _ := compareIDs(e.ID, sStartID); compare > 0 {
+					entries = append(entries, e)
+				}
+			}
+
+			if len(entries) > 0 {
+				responseEntries[sKey] = entries
+			}
+		}
+
+		if len(responseEntries) > 0 {
+			select {
+			case client.responseCh <- xreadResponse{entries: responseEntries}:
+				// Client notified
+			default:
+				// Could not notify, client may have timed out
+			}
+		} else {
+			newClients = append(newClients, client)
+		}
+	}
+
+	waitingClients[streamKey] = newClients
+	waitingClientsMu.Unlock()
+
 	resp := fmt.Sprintf("$%d\r\n%s\r\n", len(entryID), entryID)
 	conn.Write([]byte(resp))
 }
