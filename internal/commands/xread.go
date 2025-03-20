@@ -105,41 +105,47 @@ func HandleXread(conn net.Conn, args []string) {
 	waitingClientsMu.Unlock()
 
 	// Wait for response or timeout
-	select {
-	case res := <-wc.responseCh:
+	if blockTimeoutMillis == 0 {
+
+		res := <-wc.responseCh
 		sendXreadResponse(conn, res.entries)
-	case <-time.After(time.Until(wc.deadline)):
-		mu.RLock()
-		timeoutResponse := make(map[string][]core.StreamEntry)
-		for streamKey, startID := range wc.streams {
-			entry, exists := store[streamKey]
-			if !exists || entry.Type != "stream" {
-				continue
-			}
+	} else {
+		select {
+		case res := <-wc.responseCh:
+			sendXreadResponse(conn, res.entries)
+		case <-time.After(time.Until(wc.deadline)):
+			mu.RLock()
+			timeoutResponse := make(map[string][]core.StreamEntry)
+			for streamKey, startID := range wc.streams {
+				entry, exists := store[streamKey]
+				if !exists || entry.Type != "stream" {
+					continue
+				}
 
-			stream, ok := entry.Data.(core.Stream)
-			if !ok {
-				continue
-			}
+				stream, ok := entry.Data.(core.Stream)
+				if !ok {
+					continue
+				}
 
-			var entries []core.StreamEntry
-			for _, e := range stream.Entries {
-				compare, _ := compareIDs(e.ID, startID)
-				if compare > 0 {
-					entries = append(entries, e)
+				var entries []core.StreamEntry
+				for _, e := range stream.Entries {
+					compare, _ := compareIDs(e.ID, startID)
+					if compare > 0 {
+						entries = append(entries, e)
+					}
+				}
+
+				if len(entries) > 0 {
+					timeoutResponse[streamKey] = entries
 				}
 			}
+			mu.RUnlock()
 
-			if len(entries) > 0 {
-				timeoutResponse[streamKey] = entries
+			if len(timeoutResponse) > 0 {
+				sendXreadResponse(conn, timeoutResponse)
+			} else {
+				conn.Write([]byte("$-1\r\n"))
 			}
-		}
-		mu.RUnlock()
-
-		if len(timeoutResponse) > 0 {
-			sendXreadResponse(conn, timeoutResponse)
-		} else {
-			conn.Write([]byte("$-1\r\n"))
 		}
 	}
 
