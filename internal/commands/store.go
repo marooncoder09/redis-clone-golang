@@ -18,11 +18,11 @@ var (
 	replicas []net.Conn
 
 	waitingClientsMu sync.Mutex
-	waitingClients   = make(map[string][]*waitingClient) // key: stream key
+	waitingClients   = make(map[string][]*waitingClient)
 )
 
 type waitingClient struct {
-	streams    map[string]string // stream key -> start ID
+	streams    map[string]string
 	responseCh chan xreadResponse
 	deadline   time.Time
 }
