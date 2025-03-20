@@ -36,12 +36,14 @@ func HandleXrange(conn net.Conn, args []string) {
 
 	var result []core.StreamEntry
 	for _, entry := range stream.Entries {
-		compareStart, err := compareIDs(entry.ID, startID)
-		if err != nil {
-			continue
-		}
-		if compareStart < 0 {
-			continue
+		if startID != "-" {
+			compareStart, err := compareIDs(entry.ID, startID)
+			if err != nil {
+				continue
+			}
+			if compareStart < 0 {
+				continue
+			}
 		}
 
 		compareEnd, err := compareIDs(entry.ID, endID)
@@ -104,6 +106,13 @@ func parseIDForXrange(id string) (int64, int64, error) {
 // 0 if id1 == id2
 // 1 if id1 > id2
 func compareIDs(id1, id2 string) (int, error) {
+	if id1 == "-" {
+		return -1, nil
+	}
+	if id2 == "-" {
+		return 1, nil
+	}
+
 	if !strings.Contains(id1, "-") {
 		id1 += "-0"
 	}
