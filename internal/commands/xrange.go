@@ -3,7 +3,6 @@ package commands
 import (
 	"fmt"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/codecrafters-io/redis-starter-go/internal/models/core"
@@ -34,8 +33,10 @@ func HandleXrange(conn net.Conn, args []string) {
 		return
 	}
 
+	// Filter entries within the range
 	var result []core.StreamEntry
 	for _, entry := range stream.Entries {
+		// Handle startID = "-"
 		if startID != "-" {
 			compareStart, err := compareIDs(entry.ID, startID)
 			if err != nil {
@@ -46,12 +47,14 @@ func HandleXrange(conn net.Conn, args []string) {
 			}
 		}
 
-		compareEnd, err := compareIDs(entry.ID, endID)
-		if err != nil {
-			continue
-		}
-		if compareEnd > 0 {
-			continue
+		if endID != "+" {
+			compareEnd, err := compareIDs(entry.ID, endID)
+			if err != nil {
+				continue
+			}
+			if compareEnd > 0 {
+				continue
+			}
 		}
 
 		result = append(result, entry)
@@ -82,35 +85,23 @@ func encodeXrangeResponse(entries []core.StreamEntry) string {
 	return resp.String()
 }
 
-func parseIDForXrange(id string) (int64, int64, error) {
-	parts := strings.Split(id, "-")
-	if len(parts) != 2 {
-		return 0, 0, fmt.Errorf("invalid ID format")
-	}
-
-	millisecondsTime, err := strconv.ParseInt(parts[0], 10, 64)
-	if err != nil {
-		return 0, 0, fmt.Errorf("invalid millisecondsTime")
-	}
-
-	sequenceNumber, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return 0, 0, fmt.Errorf("invalid sequenceNumber")
-	}
-
-	return millisecondsTime, sequenceNumber, nil
-}
-
 // compareIDs compares two IDs and returns:
 // -1 if id1 < id2
 // 0 if id1 == id2
 // 1 if id1 > id2
 func compareIDs(id1, id2 string) (int, error) {
+	//
 	if id1 == "-" {
 		return -1, nil
 	}
 	if id2 == "-" {
 		return 1, nil
+	}
+	if id1 == "+" {
+		return 1, nil
+	}
+	if id2 == "+" {
+		return -1, nil
 	}
 
 	if !strings.Contains(id1, "-") {
@@ -120,12 +111,12 @@ func compareIDs(id1, id2 string) (int, error) {
 		id2 += "-0"
 	}
 
-	millis1, seq1, err := parseIDForXrange(id1)
+	millis1, seq1, err := parseID(id1)
 	if err != nil {
 		return 0, err
 	}
 
-	millis2, seq2, err := parseIDForXrange(id2)
+	millis2, seq2, err := parseID(id2)
 	if err != nil {
 		return 0, err
 	}
