@@ -34,6 +34,72 @@ func HandleXadd(conn net.Conn, args []string) {
 	mu.Lock()
 	defer mu.Unlock()
 
+	// Check if the entry ID is in the format "millis-*"
+	parts := strings.Split(entryID, "-")
+	if len(parts) == 2 && parts[1] == "*" {
+		millisPart := parts[0]
+		newMillis, err := strconv.ParseInt(millisPart, 10, 64)
+		if err != nil {
+			conn.Write([]byte("-ERR invalid milliseconds part\r\n"))
+			return
+		}
+
+		var seq int64
+		entry, exists := store[streamKey]
+		var stream core.Stream
+
+		if exists {
+			if entry.Type != "stream" {
+				conn.Write([]byte("-ERR key exists and is not a stream\r\n"))
+				return
+			}
+			stream = entry.Data.(core.Stream)
+		}
+
+		if exists && len(stream.Entries) > 0 {
+			lastEntryID := stream.Entries[len(stream.Entries)-1].ID
+			lastMillis, lastSeq, err := parseID(lastEntryID)
+			if err != nil {
+				conn.Write([]byte("-ERR invalid last entry ID\r\n"))
+				return
+			}
+
+			if newMillis < lastMillis {
+				conn.Write([]byte("-ERR The ID specified in XADD is equal or smaller than the target stream top item\r\n"))
+				return
+			} else if newMillis == lastMillis {
+				seq = lastSeq + 1
+			} else {
+				seq = 0
+			}
+		} else {
+			// Stream is empty
+			if newMillis == 0 {
+				seq = 1
+			} else {
+				seq = 0
+			}
+		}
+
+		newID := fmt.Sprintf("%d-%d", newMillis, seq)
+		// Validate the newID
+		if exists && len(stream.Entries) > 0 {
+			lastEntryID := stream.Entries[len(stream.Entries)-1].ID
+			if err := validateID(newID, lastEntryID); err != nil {
+				conn.Write([]byte(fmt.Sprintf("-%s\r\n", err.Error())))
+				return
+			}
+		} else {
+			if err := validateID(newID, ""); err != nil {
+				conn.Write([]byte(fmt.Sprintf("-%s\r\n", err.Error())))
+				return
+			}
+		}
+
+		entryID = newID
+		args[2] = newID // Update args for potential propagation
+	}
+
 	entry, exists := store[streamKey]
 	if !exists {
 		// stream is empty, time to validate the new id
@@ -119,7 +185,7 @@ func validateID(newID string, lastEntryID string) error {
 
 	if lastEntryID == "" {
 		// the stream is empty, new ids must be greater than 0-0, and if the stream is not empty then the stream id myst be greater then last entry's id
-		if newMillis < 0 || newSeq < 1 {
+		if newMillis < 0 || (newMillis == 0 && newSeq < 1) || (newMillis > 0 && newSeq < 0) {
 			return fmt.Errorf("ERR The ID specified in XADD must be greater than 0-0")
 		}
 		return nil
