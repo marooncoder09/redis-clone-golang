@@ -67,6 +67,17 @@ func HandleXread(conn net.Conn, args []string) {
 
 		startID := startIDs[i]
 		var entries []core.StreamEntry
+
+		if startID == "$" {
+
+			if len(stream.Entries) > 0 {
+				startID = stream.Entries[len(stream.Entries)-1].ID
+			} else {
+
+				startID = "0-0"
+			}
+		}
+
 		for _, e := range stream.Entries {
 			compare, err := compareIDs(e.ID, startID)
 			if err == nil && compare > 0 {
@@ -94,7 +105,19 @@ func HandleXread(conn net.Conn, args []string) {
 	}
 
 	for i, streamKey := range streamKeys {
-		wc.streams[streamKey] = startIDs[i]
+		startID := startIDs[i]
+		if startID == "$" {
+			entry, exists := store[streamKey]
+			if exists && entry.Type == "stream" {
+				stream, ok := entry.Data.(core.Stream)
+				if ok && len(stream.Entries) > 0 {
+					startID = stream.Entries[len(stream.Entries)-1].ID
+				} else {
+					startID = "0-0"
+				}
+			}
+		}
+		wc.streams[streamKey] = startID
 	}
 
 	// Add to waiting clients
@@ -106,10 +129,11 @@ func HandleXread(conn net.Conn, args []string) {
 
 	// Wait for response or timeout
 	if blockTimeoutMillis == 0 {
-
+		// Blocking indefinitely
 		res := <-wc.responseCh
 		sendXreadResponse(conn, res.entries)
 	} else {
+		// Blocking with timeout
 		select {
 		case res := <-wc.responseCh:
 			sendXreadResponse(conn, res.entries)
