@@ -39,6 +39,8 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 		HandleXrange(conn, args)
 	case "XREAD":
 		HandleXread(conn, args)
+	case "INCR":
+		HandleIncr(conn, args)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}
