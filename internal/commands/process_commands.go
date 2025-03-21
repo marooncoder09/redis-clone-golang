@@ -11,7 +11,7 @@ import (
 func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 	command := strings.ToUpper(args[0])
 	fmt.Println("Processing command:", command)
-
+	// so that it does not consider the DISCARD command in the transaction queueu.
 	if command == "DISCARD" {
 		HandleDiscard(conn)
 		return

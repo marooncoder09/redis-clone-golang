@@ -31,6 +31,7 @@ func HandleExec(conn net.Conn) {
 		responses = append(responses, response)
 	}
 
+	// Build and send the RESP array response
 	result := fmt.Sprintf("*%d\r\n", len(responses))
 	for _, r := range responses {
 		result += r
@@ -87,7 +88,7 @@ func handleIncrInTransaction(conn net.Conn, args []string) string {
 
 	val, err := strconv.Atoi(entry.Data.(string))
 	if err != nil {
-		return "-ERR value is not an integer\r\n"
+		return "-ERR value is not an integer or out of range\r\n"
 	}
 
 	val++
