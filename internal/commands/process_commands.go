@@ -14,23 +14,13 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 
 	models.ClientMu.Lock()
 	state, exists := models.ClientStates[conn]
-	if !exists {
-		state = &models.ClientState{
-			InTransaction: false,
-			CommandQueue:  make([][]string, 0),
-		}
-		models.ClientStates[conn] = state
-	}
-	inTransaction := state.InTransaction
 	models.ClientMu.Unlock()
 
-	// If we're inside MULTI (transaction), we will queue all commands
-	// except MULTI and EXEC themselves
-	if inTransaction && command != "MULTI" && command != "EXEC" {
+	// Queue command if in transaction (excluding MULTI/EXEC)
+	if exists && state.InTransaction && command != "MULTI" && command != "EXEC" {
 		models.ClientMu.Lock()
 		state.CommandQueue = append(state.CommandQueue, args)
 		models.ClientMu.Unlock()
-
 		conn.Write([]byte("+QUEUED\r\n"))
 		return
 	}

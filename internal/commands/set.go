@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/codecrafters-io/redis-starter-go/internal/models/core"
+	models "github.com/codecrafters-io/redis-starter-go/internal/models/core"
 	"github.com/codecrafters-io/redis-starter-go/internal/replication"
 )
 
@@ -16,6 +17,15 @@ var (
 )
 
 func HandleSet(conn net.Conn, args []string, isReplica bool) {
+	models.ClientMu.Lock()
+	state, exists := models.ClientStates[conn]
+	models.ClientMu.Unlock()
+
+	if exists && state.InTransaction {
+		// here we are just returning because it is already in transaction
+		return
+	}
+
 	if len(args) < 3 {
 		if conn != nil {
 			conn.Write([]byte("-ERR wrong number of arguments for 'SET' command\r\n"))
