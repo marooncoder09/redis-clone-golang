@@ -21,7 +21,12 @@ func HandleIncr(conn net.Conn, args []string) {
 
 	entry, exists := store[key]
 	if !exists {
-		conn.Write([]byte("-ERR key does not exist\r\n"))
+		// Key does not exist, initialize it to 1
+		store[key] = core.StoreEntry{
+			Data: "1",
+			Type: "string",
+		}
+		conn.Write([]byte(":1\r\n"))
 		return
 	}
 
