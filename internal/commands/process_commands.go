@@ -43,6 +43,8 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 		HandleIncr(conn, args)
 	case "MULTI":
 		HandleMulti(conn)
+	case "EXEC":
+		HandleExec(conn)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}
