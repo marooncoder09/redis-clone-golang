@@ -16,6 +16,7 @@ func HandleMulti(conn net.Conn) {
 		models.ClientStates[conn] = state
 	} else {
 		state.InTransaction = true
+		state.CommandQueue = make([][]string, 0)
 	}
 
 	conn.Write([]byte("+OK\r\n"))

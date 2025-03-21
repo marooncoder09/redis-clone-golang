@@ -4,12 +4,38 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	models "github.com/codecrafters-io/redis-starter-go/internal/models/core"
 )
 
 func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 	command := strings.ToUpper(args[0])
 	fmt.Println("Processing command:", command)
 
+	models.ClientMu.Lock()
+	state, exists := models.ClientStates[conn]
+	if !exists {
+		state = &models.ClientState{
+			InTransaction: false,
+			CommandQueue:  make([][]string, 0),
+		}
+		models.ClientStates[conn] = state
+	}
+	inTransaction := state.InTransaction
+	models.ClientMu.Unlock()
+
+	// If we're inside MULTI (transaction), we will queue all commands
+	// except MULTI and EXEC themselves
+	if inTransaction && command != "MULTI" && command != "EXEC" {
+		models.ClientMu.Lock()
+		state.CommandQueue = append(state.CommandQueue, args)
+		models.ClientMu.Unlock()
+
+		conn.Write([]byte("+QUEUED\r\n"))
+		return
+	}
+
+	// otherwise we will execute the commands normally
 	switch command {
 	case "PING":
 		HandlePing(conn, args, isReplica)

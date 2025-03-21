@@ -7,6 +7,7 @@ import (
 
 type ClientState struct {
 	InTransaction bool
+	CommandQueue  [][]string
 }
 
 var (
