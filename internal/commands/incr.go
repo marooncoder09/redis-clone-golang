@@ -21,7 +21,6 @@ func HandleIncr(conn net.Conn, args []string) {
 
 	entry, exists := store[key]
 	if !exists {
-		// Key does not exist, initialize it to 1
 		store[key] = core.StoreEntry{
 			Data: "1",
 			Type: "string",
@@ -43,7 +42,7 @@ func HandleIncr(conn net.Conn, args []string) {
 
 	intValue, err := strconv.Atoi(strValue)
 	if err != nil {
-		conn.Write([]byte("-ERR value is not an integer\r\n"))
+		conn.Write([]byte("-ERR value is not an integer or out of range\r\n"))
 		return
 	}
 
