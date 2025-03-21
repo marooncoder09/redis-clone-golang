@@ -12,6 +12,11 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 	command := strings.ToUpper(args[0])
 	fmt.Println("Processing command:", command)
 
+	if command == "DISCARD" {
+		HandleDiscard(conn)
+		return
+	}
+
 	models.ClientMu.Lock()
 	state, exists := models.ClientStates[conn]
 	models.ClientMu.Unlock()
@@ -61,6 +66,8 @@ func ProcessCommand(conn net.Conn, args []string, isReplica bool) {
 		HandleMulti(conn)
 	case "EXEC":
 		HandleExec(conn)
+	case "DISCARD":
+		HandleDiscard(conn)
 	default:
 		conn.Write([]byte(fmt.Sprintf("-ERR unknown command '%s'\r\n", command)))
 	}
